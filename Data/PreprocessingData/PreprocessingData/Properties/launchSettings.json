@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PreprocessingData": {
+      "commandName": "Project",
+      "commandLineArgs": "-i F:\\VoterData\\Input\\Ohio\\ -o F:\\VoterData\\Output\\Ohio -l f:\\VoerData\\Output\\Ohio\\Logdata.txt"
+    }
+  }
+}
