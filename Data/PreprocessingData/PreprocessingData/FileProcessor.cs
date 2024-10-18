@@ -65,10 +65,10 @@ namespace PreprocessingData
 
 
             string inputFileNameOnly = System.IO.Path.GetFileNameWithoutExtension(inputFileName);
-            string outputVoterFile = $"{outputDirectory}{inputFileNameOnly}.voter.txt";
+            string outputVoterFile = $"{outputDirectory}{inputFileNameOnly}.Voter.txt";
             string outputVoterHistoryFile = $"{outputDirectory}{inputFileNameOnly}.ELectionData.txt";
-            string outputVoterCheckFile = $"{outputDirectory}{inputFileNameOnly}.voterCheck.txt";
-            string outputElectionsFile = $"{outputDirectory}{inputFileNameOnly}.elections.txt";
+            string outputVoterCheckFile = $"{outputDirectory}{inputFileNameOnly}.VoterCheck.txt";
+            string outputElectionsFile = $"{outputDirectory}{inputFileNameOnly}.Elections.txt";
 
             File.Delete(outputVoterFile);
             File.Delete(outputVoterHistoryFile);
