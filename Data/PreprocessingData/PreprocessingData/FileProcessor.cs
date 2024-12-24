@@ -153,7 +153,7 @@ namespace PreprocessingData
         }
 
         internal static string ValidateFolderPath(string folderName)
-        { if (!folderName.EndsWith("\\")) return folderName += "\\"; 
+        { if (!folderName.EndsWith(Path.DirectorySeparatorChar)) return folderName += Path.DirectorySeparatorChar; 
         return folderName;
         }
 
