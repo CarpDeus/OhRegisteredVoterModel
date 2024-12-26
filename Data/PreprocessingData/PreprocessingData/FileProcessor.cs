@@ -1,4 +1,5 @@
-﻿using System.Reflection.Metadata.Ecma335;
+﻿using PreprocessingData.Models;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace PreprocessingData
@@ -18,12 +19,15 @@ namespace PreprocessingData
         public static string ArrayToPipeDelimitedString(string[] arrayToConvert)
         {
             StringBuilder sb = new StringBuilder();
+            bool first = true;
             foreach (string str in arrayToConvert)
             {
+                if (!first) sb.Append("|");
+                else first = false;
                 if (!str.StartsWith("\"")) sb.Append($"\"");
                 sb.Append($"{str}");
                 if (!str.EndsWith("\"")) sb.Append($"\"");
-                sb.Append("|");
+                
             }
             //sb.Append("\r\n");
             return sb.ToString();
@@ -37,7 +41,7 @@ namespace PreprocessingData
             }
         }
 
-        internal static void ProcessFile(string inputFileName, string outputDirectory, string logFile)
+        internal static void ProcessFile(string inputFileName, string outputDirectory, string logFile, string connectionString)
         {
             int voterCount = 0;
             int voterElectionRecordsCount = 0;
@@ -74,7 +78,7 @@ namespace PreprocessingData
             File.Delete(outputVoterHistoryFile);
             File.Delete(outputVoterCheckFile);
             File.Delete(outputElectionsFile);
-
+            List<LineProcessor> lpList = new List<LineProcessor>();
             const Int32 BufferSize = 128;
             using (var fileStream = File.OpenRead(inputFileName))
             using (var streamReader = new StreamReader(fileStream, Encoding.UTF8, true, BufferSize))
@@ -90,28 +94,38 @@ namespace PreprocessingData
                         electionData = ParseHeaders(VoterColumnHeaders, ColumnHeaders);
                         isHeaderRow = false;
                         swOutputVoterFile.WriteLine(ArrayToPipeDelimitedString(VoterColumnHeaders));
-                        swOutputVoterHistoryFile.WriteLine("\"SOS_VOTERID\"|\"ElectionName\"|\"VoterRegisteredAs\"|");
+                        DataProcessing.AddElectionsToDb(electionData, connectionString);
+                        swOutputVoterHistoryFile.WriteLine("\"SOS_VOTERID\"|\"ElectionName\"|\"VoterRegisteredAs\"");
                         //WriteData(outputVoterFile, ArrayToPipeDelimitedString(VoterColumnHeaders));
                         //WriteData(outputVoterHistoryFile, "\"SOS_VOTERID\"|\"ElectionName\"|\"ElectionType\"\r\n");
                     }
                     else
                     {
                         LineProcessor lp = new LineProcessor(line, VoterColumnHeaders, ColumnHeaders, electionData);
+                        lpList.Add(lp);
+                        if(lpList.Count>100)
+                        {
+                            DataProcessing.AddVoterDataToDb(lpList, connectionString);
+                            lpList.Clear();
+                        }
+                        // DataProcessing.AddVoterDataToDb(lp, connectionString);
+
+
                         swOutputVoterFile.WriteLine(lp.VoterData);
                         //WriteData(outputVoterFile, lp.VoterData);
                         StringBuilder sbElectionData = new StringBuilder();
                         foreach (var x in lp.VoterHistoricalData)
                         {
-                            sbElectionData.AppendLine($"{lp.VoterId}|{x.Key}|{x.Value}|");
+                            sbElectionData.AppendLine($"\"{lp.VoterId}\"|\"{x.Key}\"|\"{x.Value}\"");
                         }
                         swOutputVoterHistoryFile.WriteLine(sbElectionData.ToString());
                         //WriteData(outputVoterHistoryFile, sbElectionData.ToString());
                         voterSummary.Add(new VoterSummaryDetail { VoterId = lp.VoterId, DateRegistered = lp.RegistrationDate, NumberOfElectionRecords = lp.VoterHistoricalData.Count });
                         voterCount++;
                         voterElectionRecordsCount += lp.VoterHistoricalData.Count;
-                        if (voterCount % 10000 == 0)
+                        if (voterCount % 1000 == 0)
                         {
-                            Console.WriteLine($"{inputFileNameOnly}: {voterCount.ToString("N0")} - {voterElectionRecordsCount.ToString("N0")}\t{DateTime.Now.Subtract(lastDateTime).Seconds}");
+                            Console.WriteLine($"{inputFileNameOnly}: VotersProcessed:{voterCount.ToString("N0")} VoterHistoryRecords: {voterElectionRecordsCount.ToString("N0")}\tSecondsElapsed: {DateTime.Now.Subtract(lastDateTime).Milliseconds/1000.0}");
                             lastDateTime = DateTime.Now;
                         }
                     }
@@ -124,42 +138,48 @@ namespace PreprocessingData
                 swOutputVoterFile = null;
                 using (StreamWriter swOutputElectionsFile = File.AppendText(outputElectionsFile))
                 {
-                    swOutputElectionsFile.WriteLine($"\"ElectionName\"|\"ElectionDate\"|\"ElectionType\"|");
-                    foreach (var x in electionData) { swOutputElectionsFile.WriteLine($"\"{x.ElectionName}\"|\"{x.ElectionDate}\"|\"{x.ElectionType}\"|"); }
+                    swOutputElectionsFile.WriteLine($"\"ElectionName\"|\"ElectionDate\"|\"ElectionType\"");
+                    foreach (var x in electionData) { swOutputElectionsFile.WriteLine($"\"{x.ElectionName}\"|\"{x.ElectionDate}\"|\"{x.ElectionType}\""); }
                 }
                 using (StreamWriter swOutputVoterCheckFile = File.AppendText(outputVoterCheckFile))
                 {
-                    swOutputVoterCheckFile.WriteLine($"\"SOS_VOTERID\"|\"REGISTRATION_DATE\"|\"NumberOfElectionRecords\"|");
+                    swOutputVoterCheckFile.WriteLine($"\"SOS_VOTERID\"|\"REGISTRATION_DATE\"|\"NumberOfElectionRecords\"");
                     foreach (var x in voterSummary)
-                    { swOutputVoterCheckFile.WriteLine($"{x.VoterId}|\"{x.DateRegistered}\"|\"{x.NumberOfElectionRecords}\"|"); }
+                    { swOutputVoterCheckFile.WriteLine($"\"{x.VoterId}\"|\"{x.DateRegistered}\"|\"{x.NumberOfElectionRecords}\""); }
                 }
                 //    WriteData(outputVoterCheckFile, $"\"ElectionName\"|\"ElectionDate\"|\"ElectionType\"|\r\n");
                 
                 Console.WriteLine($"{inputFileNameOnly}: {voterCount.ToString("N0")} - {voterElectionRecordsCount.ToString("N0")}");
             }
+            if (lpList.Count > 0)
+            {
+                DataProcessing.AddVoterDataToDb(lpList, connectionString);
+                lpList.Clear();
+            }
         }
 
-        internal static void ProcessFolders(string inputDirectory, string outputDirectory, string logFile)
+        internal static void ProcessFolders(string inputDirectory, string outputDirectory, string logFile, string connectionString)
         {
-            
+
+            DataProcessing.ClearData(connectionString);
             foreach (string folderName in System.IO.Directory.EnumerateDirectories(inputDirectory))
             {
-                ProcessFolders(inputDirectory, outputDirectory, logFile);
+                ProcessFolders(inputDirectory, outputDirectory, logFile, connectionString);
             }
             foreach (string inputFileName in System.IO.Directory.EnumerateFiles(inputDirectory))
             {
-                ProcessFile(inputFileName, outputDirectory, logFile);
+                ProcessFile(inputFileName, outputDirectory, logFile, connectionString);
             }
         }
 
         internal static string ValidateFolderPath(string folderName)
-        { if (!folderName.EndsWith("\\")) return folderName += "\\"; 
+        { if (!folderName.EndsWith(System.IO.Path.DirectorySeparatorChar)) return folderName += System.IO.Path.DirectorySeparatorChar; 
         return folderName;
         }
 
-        public static void ProcessFiles(string inputDirectory, string outputDirectory, string logFile)
+        public static void ProcessFiles(string inputDirectory, string outputDirectory, string logFile, string connectionString)
         {
-            ProcessFolders(ValidateFolderPath( inputDirectory), ValidateFolderPath(outputDirectory), logFile);
+            ProcessFolders(ValidateFolderPath( inputDirectory), ValidateFolderPath(outputDirectory), logFile, connectionString);
         }
     }
 }

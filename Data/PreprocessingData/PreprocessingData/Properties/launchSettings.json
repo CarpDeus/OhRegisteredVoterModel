@@ -2,7 +2,7 @@
   "profiles": {
     "PreprocessingData": {
       "commandName": "Project",
-      "commandLineArgs": "-i F:\\VoterData\\Input\\Ohio\\ -o F:\\VoterData\\Output\\Ohio -l f:\\VoerData\\Output\\Ohio\\Logdata.txt"
+      "commandLineArgs": "-i F:\\VoterData\\Input\\Ohio\\ -o F:\\VoterData\\Output\\Ohio -l f:\\VoerData\\Output\\Ohio\\Logdata.txt -c \"Data Source=192.168.2.150;Initial Catalog=ElectioneerStaging;Persist Security Info=True;User ID=ElectionData;Password=Pantry!Duckbill4!Reference;Multiple Active Result Sets=True;Trust Server Certificate=True;Application Name=ElectioneerStaging\""
     }
   }
 }

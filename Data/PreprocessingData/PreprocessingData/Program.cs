@@ -11,7 +11,7 @@ namespace PreprocessingData
             Parser.Default.ParseArguments<Options>(args)
                     .WithParsed<Options>(o =>
                     {
-                        FileProcessor.ProcessFiles(o.inputFolder, o.outputFolder, o.logFile);
+                        FileProcessor.ProcessFiles(o.inputFolder, o.outputFolder, o.logFile, o.connectionString);
                     });
         }
 
@@ -29,6 +29,8 @@ namespace PreprocessingData
         [Option('l', "logFile", Required = true, HelpText = "File to log data in")]
         public string logFile { get; set; }
 
+        [Option('c', "connectionString", Required = true, HelpText = "Sql Connection String")]
+        public string connectionString { get; set; }
     }
 }
 
