@@ -125,7 +125,7 @@ namespace PreprocessingData
                         voterElectionRecordsCount += lp.VoterHistoricalData.Count;
                         if (voterCount % 1000 == 0)
                         {
-                            Console.WriteLine($"{inputFileNameOnly}: VotersProcessed:{voterCount.ToString("N0")} VoterHistoryRecords: {voterElectionRecordsCount.ToString("N0")}\tSecondsElapsed: {DateTime.Now.Subtract(lastDateTime).Milliseconds/1000.0}");
+                            Console.WriteLine($"{inputFileNameOnly}: VotersProcessed:{voterCount.ToString("N0")} VoterHistoryRecords: {voterElectionRecordsCount.ToString("N0")}\tSecondsElapsed: {DateTime.Now.Subtract(lastDateTime).Seconds}");
                             lastDateTime = DateTime.Now;
                         }
                     }
